@@ -9,34 +9,58 @@ export default function RecommendationCard({
   recommendation, 
   onSaveAsTrip 
 }: RecommendationCardProps) {
-  return (
-    <div className="p-6 border rounded-xl shadow-lg bg-white hover:shadow-xl transition-shadow">
-      <div className="flex justify-between items-start mb-3">
-        <h3 className="text-xl font-bold text-gray-900">
-          {recommendation.city}
-        </h3>
-        <span className="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded-full">
-          {(recommendation.score * 100).toFixed(1)}%
-        </span>
-      </div>
-      
-      <p className="text-gray-600 font-medium mb-2">{recommendation.country}</p>
-      <p className="text-sm text-gray-500 mb-3 capitalize">{recommendation.region}</p>
-      
-      {recommendation.short_description && (
-        <p className="text-gray-700 text-sm leading-relaxed mb-4">
-          {recommendation.short_description}
-        </p>
-      )}
+  const matchPercentage = (recommendation.score * 100).toFixed(1);
 
-      {onSaveAsTrip && (
-        <button
-          onClick={() => onSaveAsTrip(recommendation)}
-          className="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors text-sm font-medium"
-        >
-          Save as Trip
-        </button>
-      )}
+  return (
+    <div className="result-card">
+      {/* Header with City Name */}
+      <div className="result-header">
+        <div className="result-badge">
+          <span>⭐</span>
+          <span>{matchPercentage}%</span>
+        </div>
+        <h3 className="result-title">{recommendation.city}</h3>
+      </div>
+
+      {/* Content */}
+      <div className="result-content">
+        {/* Location Info */}
+        <div className="result-location">
+          <span style={{ fontSize: '1.25rem' }}>📍</span>
+          <span className="result-country">{recommendation.country}</span>
+          <span className="result-region">{recommendation.region}</span>
+        </div>
+
+        {/* Description */}
+        {recommendation.short_description && (
+          <div className="result-description">
+            "{recommendation.short_description}"
+          </div>
+        )}
+
+        {/* Single Centered Match Score */}
+        <div className="result-stats">
+          <div className="stat-item-full">
+            <div className="stat-label-large">
+              <span>🎯</span>
+              Match Score
+            </div>
+            <div className="stat-value-large">{matchPercentage}%</div>
+          </div>
+        </div>
+
+        {/* Save Button */}
+        {onSaveAsTrip && (
+          <button
+            onClick={() => onSaveAsTrip(recommendation)}
+            className="btn"
+            style={{ width: '100%' }}
+          >
+            <span>✈️</span>
+            Save as Trip
+          </button>
+        )}
+      </div>
     </div>
   );
 }

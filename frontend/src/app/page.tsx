@@ -5,27 +5,56 @@ import { getRecommendations } from "@/lib/api";
 import RecommendationCard from "@/components/RecommendationCard";
 import type { Recommendation, RecommendationRequest } from "@/types/trip";
 
+interface InterestState {
+  enabled: boolean;
+  value: number;
+}
+
 export default function Page() {
   // Basic preferences
-  const [budget, setBudget] = useState(""); 
-  const [culture, setCulture] = useState(2.5);
-  const [adventure, setAdventure] = useState(2.5);
-  const [nature, setNature] = useState(2.5);
+  const [budget, setBudget] = useState("");
   const [region, setRegion] = useState("");
-  
-  // Additional preferences
-  const [beaches, setBeaches] = useState(2.5);
-  const [nightlife, setNightlife] = useState(2.5);
-  const [cuisine, setCuisine] = useState(2.5);
-  const [wellness, setWellness] = useState(2.5);
-  const [urban, setUrban] = useState(2.5);
-  const [seclusion, setSeclusion] = useState(2.5);
   const [avgTemp, setAvgTemp] = useState(20);
   const [idealDuration, setIdealDuration] = useState("One week");
+  
+  // Interest preferences with enabled/disabled state
+  const [interests, setInterests] = useState({
+    culture: { enabled: false, value: 3 },
+    adventure: { enabled: false, value: 3 },
+    nature: { enabled: false, value: 3 },
+    beaches: { enabled: false, value: 3 },
+    nightlife: { enabled: false, value: 3 },
+    cuisine: { enabled: false, value: 3 },
+    wellness: { enabled: false, value: 3 },
+    urban: { enabled: false, value: 3 },
+    seclusion: { enabled: false, value: 3 },
+  });
   
   const [results, setResults] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Toggle interest on/off
+  const toggleInterest = (key: keyof typeof interests) => {
+    setInterests(prev => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        enabled: !prev[key].enabled
+      }
+    }));
+  };
+
+  // Update interest value
+  const updateInterestValue = (key: keyof typeof interests, value: number) => {
+    setInterests(prev => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        value: value
+      }
+    }));
+  };
 
   async function handleGetRecommendations() {
     setLoading(true);
@@ -33,30 +62,32 @@ export default function Page() {
     setError(null);
 
     try {
-      const params: RecommendationRequest = {
-        culture,
-        adventure,
-        nature,
-        beaches,
-        nightlife,
-        cuisine,
-        wellness,
-        urban,
-        seclusion,
+      // Build params - only include enabled interests
+      const params: any = {
         avg_temp: avgTemp,
         ideal_durations: [idealDuration],
-        top_n: 5,
+        top_n: 6,
       };
 
+      // Add budget if selected
       if (budget && budget !== "") {
         params.budget_level = budget;
       }
 
+      // Add region if entered
       if (region && region.trim() !== "") {
         params.region = region.trim();
       }
 
-      console.log('Sending params:', params);
+      // Add only enabled interests (send their values), disabled interests are omitted entirely
+      Object.entries(interests).forEach(([key, interest]) => {
+        if (interest.enabled) {
+          params[key] = interest.value;
+        }
+        // If disabled, we don't send the parameter at all (not even 0)
+      });
+
+      console.log('Sending params (only enabled interests):', params);
       
       const data = await getRecommendations(params);
       setResults(data.recommendations || []);
@@ -69,183 +100,248 @@ export default function Page() {
   }
 
   const handleSaveAsTrip = (recommendation: Recommendation) => {
-    // TODO: Implement save as trip functionality
-    console.log('Save as trip:', recommendation);
-    alert(`"${recommendation.city}, ${recommendation.country}" will be saved as a trip!`);
+    alert(`🎉 "${recommendation.city}, ${recommendation.country}" saved to your trips!`);
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="p-6 max-w-6xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">🌍 Travel Recommender</h1>
-          <p className="text-gray-600">Discover your perfect destination with AI-powered recommendations</p>
-        </div>
+  const interestOptions = [
+    { key: 'culture' as keyof typeof interests, label: 'Culture & History', icon: '🏛️', description: 'Museums, historical sites, art galleries' },
+    { key: 'adventure' as keyof typeof interests, label: 'Adventure & Sports', icon: '⛰️', description: 'Hiking, climbing, extreme sports' },
+    { key: 'nature' as keyof typeof interests, label: 'Nature & Wildlife', icon: '🌿', description: 'National parks, wildlife, landscapes' },
+    { key: 'beaches' as keyof typeof interests, label: 'Beaches & Coast', icon: '🏖️', description: 'Sandy beaches, coastal activities' },
+    { key: 'nightlife' as keyof typeof interests, label: 'Nightlife & Entertainment', icon: '🌃', description: 'Bars, clubs, entertainment venues' },
+    { key: 'cuisine' as keyof typeof interests, label: 'Food & Cuisine', icon: '🍽️', description: 'Local food, restaurants, culinary experiences' },
+    { key: 'wellness' as keyof typeof interests, label: 'Wellness & Relaxation', icon: '🧘', description: 'Spas, yoga retreats, peaceful environments' },
+    { key: 'urban' as keyof typeof interests, label: 'City Life & Shopping', icon: '🏙️', description: 'City attractions, shopping, urban culture' },
+    { key: 'seclusion' as keyof typeof interests, label: 'Peace & Seclusion', icon: '🏝️', description: 'Remote locations, tranquil environments' },
+  ];
 
-        {/* Error display */}
+  return (
+    <div>
+      {/* Hero Section */}
+      <div className="hero">
+        <div className="container">
+          <div className="brand-logo">🌍</div>
+          <h1>Where2</h1>
+          <p className="subtitle">
+            Where2 was built with diversity and inclusion in mind, by promoting culture and travel destinations by user preference rather than standard marketing tactics.
+            Choose what matters to you, and let our model find a match for your perfect travel destination!
+          </p>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="container">
+        {/* Error Display */}
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-            Error: {error}
+          <div className="error-message">
+            <span style={{ fontSize: '1.25rem' }}>⚠️</span>
+            <strong>Error:</strong> {error}
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Left Column - Basic Preferences */}
-            <div className="space-y-6">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4">Basic Preferences</h2>
-
-              {/* Budget selector */}
-              <div>
-                <label className="block mb-2 font-medium text-gray-700">Budget Level</label>
-                <select
-                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  value={budget}
-                  onChange={(e) => setBudget(e.target.value)}
-                >
-                  <option value="">Any Budget</option>
-                  <option value="Budget">Budget</option>
-                  <option value="Mid-range">Mid-range</option>
-                  <option value="Luxury">Luxury</option>
-                </select>
-              </div>
-
-              {/* Region input */}
-              <div>
-                <label className="block mb-2 font-medium text-gray-700">Preferred Region</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Europe, Asia, Africa"
-                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  value={region}
-                  onChange={(e) => setRegion(e.target.value)}
-                />
-              </div>
-
-              {/* Ideal Duration */}
-              <div>
-                <label className="block mb-2 font-medium text-gray-700">Ideal Trip Duration</label>
-                <select
-                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  value={idealDuration}
-                  onChange={(e) => setIdealDuration(e.target.value)}
-                >
-                  <option value="Weekend">Weekend</option>
-                  <option value="One week">One week</option>
-                  <option value="Two weeks">Two weeks</option>
-                  <option value="One month">One month</option>
-                  <option value="More than a month">More than a month</option>
-                </select>
-              </div>
-
-              {/* Average Temperature */}
-              <div>
-                <label className="block mb-2 font-medium text-gray-700">
-                  Preferred Temperature: {avgTemp}°C
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="40"
-                  step="1"
-                  value={avgTemp}
-                  onChange={(e) => setAvgTemp(parseInt(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                />
-                <div className="flex justify-between text-sm text-gray-500 mt-1">
-                  <span>Cold (0°C)</span>
-                  <span>Mild (20°C)</span>
-                  <span>Hot (40°C)</span>
-                </div>
-              </div>
+        {/* Search Form */}
+        <div className="card">
+          {/* Basic Settings */}
+          <h2 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '1.5rem', textAlign: 'center' }}>
+            Basic Preferences
+          </h2>
+          
+          <div className="form-grid">
+            <div className="form-group">
+              <label className="form-label">💰 Budget</label>
+              <select
+                className="form-select"
+                value={budget}
+                onChange={(e) => setBudget(e.target.value)}
+              >
+                <option value="">Any Budget</option>
+                <option value="Budget">Budget Friendly</option>
+                <option value="Mid-range">Mid Range</option>
+                <option value="Luxury">Luxury Experience</option>
+              </select>
             </div>
 
-            {/* Right Column - Interest Preferences */}
-            <div className="space-y-4">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4">Interest Levels (0-5)</h2>
+            <div className="form-group">
+              <label className="form-label">🌎 Region</label>
+              <input
+                type="text"
+                placeholder="Europe, Asia, etc..."
+                className="form-input"
+                value={region}
+                onChange={(e) => setRegion(e.target.value)}
+              />
+            </div>
 
-              {[
-                { key: 'culture', value: culture, setter: setCulture, label: 'Culture', icon: '🏛️' },
-                { key: 'adventure', value: adventure, setter: setAdventure, label: 'Adventure', icon: '⛰️' },
-                { key: 'nature', value: nature, setter: setNature, label: 'Nature', icon: '🌿' },
-                { key: 'beaches', value: beaches, setter: setBeaches, label: 'Beaches', icon: '🏖️' },
-                { key: 'nightlife', value: nightlife, setter: setNightlife, label: 'Nightlife', icon: '🌃' },
-                { key: 'cuisine', value: cuisine, setter: setCuisine, label: 'Cuisine', icon: '🍽️' },
-                { key: 'wellness', value: wellness, setter: setWellness, label: 'Wellness', icon: '🧘' },
-                { key: 'urban', value: urban, setter: setUrban, label: 'Urban', icon: '🏙️' },
-                { key: 'seclusion', value: seclusion, setter: setSeclusion, label: 'Seclusion', icon: '🏝️' },
-              ].map(({ key, value, setter, label, icon }) => (
-                <div key={key}>
-                  <label className="block mb-2 text-gray-700">
-                    {icon} {label}: <span className="font-medium">{value}</span>
-                  </label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="5"
-                    step="0.5"
-                    value={value}
-                    onChange={(e) => setter(parseFloat(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                  />
-                </div>
-              ))}
+            <div className="form-group">
+              <label className="form-label">⏰ Duration</label>
+              <select
+                className="form-select"
+                value={idealDuration}
+                onChange={(e) => setIdealDuration(e.target.value)}
+              >
+                <option value="Weekend">Weekend Getaway</option>
+                <option value="One week">One Week</option>
+                <option value="Two weeks">Two Weeks</option>
+                <option value="One month">One Month</option>
+                <option value="More than a month">Extended Stay</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">🌡️ Temperature: {avgTemp}°C</label>
+              <input
+                type="range"
+                min="0"
+                max="40"
+                step="1"
+                value={avgTemp}
+                onChange={(e) => setAvgTemp(parseInt(e.target.value))}
+                className="slider"
+              />
+              <div className="slider-info">
+                <span>❄️ Cold</span>
+                <span>🔥 Hot</span>
+              </div>
             </div>
           </div>
 
-          {/* Submit Button */}
-          <div className="mt-8 text-center">
+          {/* Interest Preferences */}
+          <div style={{ marginTop: '3rem' }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '1rem', textAlign: 'center' }}>
+              What Interests You?
+            </h2>
+            <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: '2rem', fontSize: '1rem' }}>
+              Select the activities and experiences that matter to you, then adjust how important they are
+            </p>
+
+            <div className="interests-grid">
+              {interestOptions.map(({ key, label, icon, description }) => {
+                const interest = interests[key];
+                return (
+                  <div key={key} className={`interest-toggle ${interest.enabled ? 'active' : ''}`}>
+                    <div className="interest-item" style={{ width: '100%', background: 'none', border: 'none', padding: 0 }}>
+                      {/* Toggle Header */}
+                      <div 
+                        onClick={() => toggleInterest(key)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', width: '100%' }}
+                      >
+                        <div className={`toggle-checkbox ${interest.enabled ? 'checked' : ''}`}>
+                          {interest.enabled && <span style={{ fontSize: '0.75rem' }}>✓</span>}
+                        </div>
+                        
+                        <span style={{ fontSize: '1.5rem' }}>{icon}</span>
+                        
+                        <div style={{ flex: 1 }}>
+                          <div className="interest-label-text">{label}</div>
+                          <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                            {description}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Slider (only shown when enabled) */}
+                      {interest.enabled && (
+                        <div className="slider-container">
+                          <div className="slider-controls">
+                            <div className="slider-label">How important?</div>
+                            <input
+                              type="range"
+                              min="1"
+                              max="5"
+                              step="1"
+                              value={interest.value}
+                              onChange={(e) => updateInterestValue(key, parseInt(e.target.value))}
+                              className="slider"
+                              style={{ flex: 1 }}
+                            />
+                            <div className="slider-value-display">
+                              {interest.value}/5
+                            </div>
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.5rem', textAlign: 'center' }}>
+                            1 = Slightly interested • 3 = Moderately interested • 5 = Very interested
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Search Button */}
+          <div style={{ textAlign: 'center', marginTop: '3rem' }}>
+            <div style={{ marginBottom: '1rem', color: '#6b7280' }}>
+              {Object.values(interests).filter(i => i.enabled).length} interests selected
+            </div>
             <button
               onClick={handleGetRecommendations}
               disabled={loading}
-              className="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold shadow-lg transition-all duration-200"
+              className="btn btn-large"
             >
               {loading ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Finding Perfect Destinations...
-                </span>
+                <>
+                  <span className="loading-spinner">🌍</span>
+                  Finding Your Perfect Destinations...
+                </>
               ) : (
-                "🔍 Get Travel Recommendations"
+                <>
+                  <span>✨</span>
+                  Discover Amazing Places
+                </>
               )}
             </button>
           </div>
         </div>
 
-        {/* Results */}
-        <div>
-          {results.length > 0 ? (
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">
-                🎯 Your Perfect Destinations
+        {/* Results Section */}
+        {results.length > 0 ? (
+          <div>
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <h2 style={{ fontSize: '2.5rem', fontWeight: '700', color: 'white', marginBottom: '0.5rem' }}>
+                🎯 Your Perfect Travel Matches
               </h2>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {results.map((recommendation, i) => (
-                  <RecommendationCard
-                    key={i}
-                    recommendation={recommendation}
-                    onSaveAsTrip={handleSaveAsTrip}
-                  />
-                ))}
+              <p style={{ fontSize: '1.25rem', color: 'rgba(255,255,255,0.8)' }}>
+                Based on your {Object.values(interests).filter(i => i.enabled).length} selected interests
+              </p>
+            </div>
+            
+            <div className="results-grid">
+              {results.map((recommendation, i) => (
+                <RecommendationCard
+                  key={`${recommendation.city}-${recommendation.country}-${i}`}
+                  recommendation={recommendation}
+                  onSaveAsTrip={handleSaveAsTrip}
+                />
+              ))}
+            </div>
+          </div>
+        ) : (
+          !loading && !error && (
+            <div className="empty-state">
+              <div className="empty-state-icon">🗺️</div>
+              <h3>Ready to Find Your Perfect Destination?</h3>
+              <p>
+                Select the activities and experiences that interest you above, then let our machine learning model recommend destinations that match your preferences perfectly.
+              </p>
+              <div className="features">
+                <div className="feature-item">
+                  <div className="feature-icon">✓</div>
+                  <div className="feature-label">Choose What Matters</div>
+                </div>
+                <div className="feature-item">
+                  <div className="feature-icon">🎯</div>
+                  <div className="feature-label">Set Priorities</div>
+                </div>
+                <div className="feature-item">
+                  <div className="feature-icon">🤖</div>
+                  <div className="feature-label">ML Recommendations</div>
+                </div>
               </div>
             </div>
-          ) : (
-            !loading && !error && (
-              <div className="text-center py-16 bg-white rounded-lg shadow-lg">
-                <div className="text-6xl mb-4">🗺️</div>
-                <h3 className="text-2xl font-semibold text-gray-800 mb-2">
-                  Ready to Discover Amazing Places?
-                </h3>
-                <p className="text-gray-600 text-lg">
-                  Customize your preferences above and let AI find your perfect destination
-                </p>
-              </div>
-            )
-          )}
-        </div>
+          )
+        )}
       </div>
     </div>
   );
