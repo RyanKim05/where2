@@ -1,0 +1,8 @@
+# Terraform state and cache
+infra/.terraform/
+infra/terraform.tfstate
+infra/terraform.tfstate.backup
+*.zip
+
+# Local IDE / editor files
+.vscode/
