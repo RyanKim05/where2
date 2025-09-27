@@ -22,7 +22,10 @@ A personalized travel recommendation web application that helps users discover c
 - **Other:** CORS middleware for frontend-backend communication  
 
 ---
-
+## Dataset Reference
+This project uses city ratings, climate, and travel data as the source for recommendations. The dataset is available on Kaggle:
+[Worldwide Travel Cities Ratings and Climate](https://www.kaggle.com/datasets/furkanima/worldwide-travel-cities-ratings-and-climate
+)
 ## Project Structure
 
 /backend
@@ -89,7 +92,4 @@ Copy code
     ...
   ]
 }
-Dataset Reference
-This project uses city ratings, climate, and travel data as the source for recommendations. The dataset is available on Kaggle:
-[Worldwide Travel Cities Ratings and Climate](https://www.kaggle.com/datasets/furkanima/worldwide-travel-cities-ratings-and-climate
-)
+
